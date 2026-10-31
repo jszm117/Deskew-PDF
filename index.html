@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In-Browser PDF Deskewer</title>
+    <title>Meow-DF Deskewer 🐾</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,26 +18,29 @@
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCVLoaded()" type="text/javascript"></script>
 
     <style>
-        /* Custom scrollbar for a cleaner look */
+        /* Custom blue scrollbar for the theme */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        input[type=range] { accent-color: #3b82f6; }
+        ::-webkit-scrollbar-track { background: #eff6ff; }
+        ::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+        input[type=range] { accent-color: #2563eb; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+<body class="bg-blue-50 text-blue-900 font-sans min-h-screen flex flex-col">
 
     <!-- Header -->
-    <header class="bg-white shadow-sm py-5 px-8">
+    <header class="bg-white shadow-sm py-5 px-8 border-b-4 border-blue-200">
         <div class="max-w-6xl mx-auto flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900">PDF Deskewer</h1>
-                <p class="text-sm text-slate-500">100% Client-side Auto-Straightening for Scanned PDFs</p>
+            <div class="flex items-center gap-3">
+                <div class="text-4xl">😻</div>
+                <div>
+                    <h1 class="text-2xl font-bold text-blue-800">Meow-DF Deskewer</h1>
+                    <p class="text-sm text-blue-500 font-medium">100% Client-side Auto-Straightening for Scanned PDFs</p>
+                </div>
             </div>
-            <div id="cv-status" class="flex items-center text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                Initializing Engine...
+            <div id="cv-status" class="flex items-center text-sm font-bold text-blue-600 bg-blue-100 px-4 py-2 rounded-full shadow-sm">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Waking up the cats...
             </div>
         </div>
     </header>
@@ -46,30 +49,30 @@
     <main class="flex-grow max-w-6xl mx-auto w-full p-8 flex flex-col gap-6">
         
         <!-- Upload Zone -->
-        <div id="dropzone" class="w-full border-2 border-dashed border-slate-300 rounded-2xl bg-white p-12 flex flex-col items-center justify-center text-center transition-all opacity-50 pointer-events-none hover:border-blue-500 hover:bg-blue-50 cursor-pointer">
-            <svg class="w-12 h-12 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-            <h3 id="status-msg" class="text-lg font-semibold text-slate-700">Please wait for the engine to load...</h3>
-            <p class="text-slate-500 mt-1">Supports multi-page scanned PDFs</p>
+        <div id="dropzone" class="w-full border-4 border-dashed border-blue-200 rounded-3xl bg-white p-12 flex flex-col items-center justify-center text-center transition-all opacity-50 pointer-events-none hover:border-blue-500 hover:bg-blue-100 cursor-pointer shadow-sm">
+            <div class="text-6xl mb-4">📥🐈</div>
+            <h3 id="status-msg" class="text-xl font-bold text-blue-800">Please wait for the cats to wake up...</h3>
+            <p class="text-blue-500 mt-2 font-medium">Drop a multi-page scanned PDF here to let them fix it</p>
             <input type="file" id="file-input" class="hidden" accept="application/pdf" />
         </div>
 
         <!-- Progress Tracker -->
-        <div id="progress-container" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div id="progress-container" class="hidden bg-white p-6 rounded-3xl shadow-md border-2 border-blue-100">
             <div class="flex justify-between items-end mb-2">
-                <span id="progress-text" class="text-sm font-semibold text-blue-600">Processing page 1 of X...</span>
-                <span id="progress-percent" class="text-xs font-bold text-slate-400">0%</span>
+                <span id="progress-text" class="text-sm font-bold text-blue-600">🐾 Paw-cessing page 1 of X...</span>
+                <span id="progress-percent" class="text-xs font-bold text-blue-400">0%</span>
             </div>
-            <div class="w-full bg-slate-100 rounded-full h-2.5">
-                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            <div class="w-full bg-blue-100 rounded-full h-4 overflow-hidden">
+                <div id="progress-bar" class="bg-blue-500 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
             </div>
         </div>
 
         <!-- Action Bar -->
-        <div id="action-bar" class="hidden flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <span class="text-slate-600 font-medium ml-2">Review your pages below. Adjust angles if needed.</span>
-            <button id="download-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+        <div id="action-bar" class="hidden flex justify-between items-center bg-white p-5 rounded-3xl shadow-md border-2 border-blue-100">
+            <span class="text-blue-700 font-bold ml-2">😸 Look good? Adjust angles below if the cats missed a spot.</span>
+            <button id="download-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download Deskewed PDF
+                Download Paw-fect PDF
             </button>
         </div>
 
@@ -89,37 +92,38 @@
         let originalFileName = "document.pdf";
         const HIGH_RES_SCALE = 3.0; // High resolution rendering
 
+        // FIX: Robust OpenCV WASM initialization polling
         function onOpenCVLoaded() {
-            // OpenCV.js asynchronous initialization wrapper
-            if (cv instanceof Promise) {
-                cv.then((target) => {
-                    window.cv = target;
+            const checkCV = () => {
+                // cv.Mat is only available once the WebAssembly module fully compiles
+                if (typeof cv !== 'undefined' && cv.Mat) {
                     initApp();
-                });
-            } else if (cv.onRuntimeInitialized) {
-                cv.onRuntimeInitialized = initApp;
-            } else {
-                initApp();
-            }
+                } else if (typeof cv !== 'undefined' && cv.onRuntimeInitialized) {
+                    cv.onRuntimeInitialized = initApp;
+                } else {
+                    setTimeout(checkCV, 150); // Poll every 150ms until ready
+                }
+            };
+            checkCV();
         }
 
         function initApp() {
             const cvStatus = document.getElementById('cv-status');
-            cvStatus.classList.remove('bg-amber-50', 'text-amber-600');
-            cvStatus.classList.add('bg-emerald-50', 'text-emerald-700');
-            cvStatus.innerHTML = `<svg class="mr-1.5 h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Engine Ready`;
+            cvStatus.classList.remove('bg-blue-100', 'text-blue-600');
+            cvStatus.classList.add('bg-blue-600', 'text-white');
+            cvStatus.innerHTML = `🐈 Cats are ready!`;
 
             const dropzone = document.getElementById('dropzone');
             dropzone.classList.remove('opacity-50', 'pointer-events-none');
-            document.getElementById('status-msg').innerText = "Drag & Drop a scanned PDF here or Click to Browse";
+            document.getElementById('status-msg').innerText = "Drag & Drop a scanned PDF or Click to Browse";
 
             // Event Listeners
             dropzone.addEventListener('click', () => document.getElementById('file-input').click());
-            dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('bg-blue-50', 'border-blue-500'); });
-            dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('bg-blue-50', 'border-blue-500'); });
+            dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('bg-blue-100', 'border-blue-500'); });
+            dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('bg-blue-100', 'border-blue-500'); });
             dropzone.addEventListener('drop', (e) => {
                 e.preventDefault();
-                dropzone.classList.remove('bg-blue-50', 'border-blue-500');
+                dropzone.classList.remove('bg-blue-100', 'border-blue-500');
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                     handleFile(e.dataTransfer.files[0]);
                 }
@@ -135,7 +139,7 @@
         // --- Core PDF Processing Flow ---
         async function handleFile(file) {
             if (file.type !== "application/pdf") {
-                alert("Please upload a valid PDF file.");
+                alert("Only PDFs allowed! 😾");
                 return;
             }
             
@@ -195,7 +199,7 @@
 
         function updateProgress(current, total) {
             const percent = Math.round((current / total) * 100);
-            document.getElementById('progress-text').innerText = `Processing page ${current} of ${total}...`;
+            document.getElementById('progress-text').innerText = `🐾 Paw-cessing page ${current} of ${total}...`;
             document.getElementById('progress-percent').innerText = `${percent}%`;
             document.getElementById('progress-bar').style.width = `${percent}%`;
         }
@@ -207,11 +211,9 @@
                 let gray = new cv.Mat();
                 cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
                 
-                // Edge detection
                 let edges = new cv.Mat();
                 cv.Canny(gray, edges, 50, 200, 3);
                 
-                // Detect lines using Probabilistic Hough Transform
                 let lines = new cv.Mat();
                 cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 100, 50, 10);
                 
@@ -224,11 +226,9 @@
                     
                     let angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
                     
-                    // Normalize angle to find general horizontal skew
                     if (angle < -45) angle += 90;
                     if (angle > 45) angle -= 90;
                     
-                    // We only care about standard minor skews (-15 to +15)
                     if (angle >= -15 && angle <= 15) {
                         angles.push(angle);
                     }
@@ -238,13 +238,12 @@
 
                 if (angles.length === 0) return 0;
                 
-                // Return Median Angle
                 angles.sort((a, b) => a - b);
                 return angles[Math.floor(angles.length / 2)];
                 
             } catch (err) {
                 console.error("OpenCV detection failed on page:", err);
-                return 0; // fallback to 0 if algo fails
+                return 0;
             }
         }
 
@@ -253,13 +252,11 @@
             let canvas = document.createElement('canvas');
             let ctx = canvas.getContext('2d');
             
-            // Keep original dimensions, fill background with white
             canvas.width = sourceCanvas.width;
             canvas.height = sourceCanvas.height;
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Rotate around center
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate(angle * Math.PI / 180);
             ctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
@@ -272,40 +269,39 @@
             const page = processedPages[index];
             const container = document.getElementById('results-container');
             
-            // Generate low-res previews for the DOM to maintain browser performance
             const origPreview = page.originalCanvas.toDataURL('image/jpeg', 0.4);
             const procPreview = page.processedCanvas.toDataURL('image/jpeg', 0.4);
 
             const card = document.createElement('div');
-            card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-4";
+            card.className = "bg-white p-5 rounded-3xl shadow-sm border-2 border-blue-100 flex flex-col gap-4";
             card.innerHTML = `
-                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <h4 class="font-semibold text-slate-700">Page ${page.pageNum}</h4>
-                    <span class="text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-500" id="badge-${index}">Auto-detected</span>
+                <div class="flex justify-between items-center border-b-2 border-blue-50 pb-2">
+                    <h4 class="font-bold text-blue-900">📄 Page ${page.pageNum}</h4>
+                    <span class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-600" id="badge-${index}">Auto-detected 🐾</span>
                 </div>
                 
-                <div class="flex gap-4 items-center justify-center bg-slate-50 p-4 rounded-xl">
+                <div class="flex gap-4 items-center justify-center bg-blue-50/50 p-4 rounded-2xl">
                     <div class="flex flex-col items-center w-1/2">
-                        <span class="text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Original</span>
-                        <img src="${origPreview}" class="max-h-64 border border-slate-200 shadow-sm" />
+                        <span class="text-xs text-blue-400 mb-2 uppercase tracking-wider font-bold">Crooked 😿</span>
+                        <img src="${origPreview}" class="max-h-64 border-2 border-blue-100 shadow-sm rounded" />
                     </div>
-                    <svg class="w-6 h-6 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    <div class="text-2xl text-blue-300">➡️</div>
                     <div class="flex flex-col items-center w-1/2">
-                        <span class="text-xs text-blue-500 mb-2 uppercase tracking-wider font-bold">Corrected</span>
-                        <img src="${procPreview}" id="img-proc-${index}" class="max-h-64 border border-blue-200 shadow-sm" />
+                        <span class="text-xs text-blue-600 mb-2 uppercase tracking-wider font-bold">Purr-fect 😸</span>
+                        <img src="${procPreview}" id="img-proc-${index}" class="max-h-64 border-2 border-blue-400 shadow-md rounded" />
                     </div>
                 </div>
 
-                <div class="mt-2">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="text-sm font-medium text-slate-600">Manual Adjustment</label>
-                        <span id="angle-val-${index}" class="text-sm font-bold ${page.angle === 0 ? 'text-slate-400' : 'text-blue-600'}">${(-page.angle).toFixed(1)}°</span>
+                <div class="mt-2 bg-blue-50 p-4 rounded-2xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-bold text-blue-800">Manual Nudge</label>
+                        <span id="angle-val-${index}" class="text-sm font-bold bg-white px-2 py-1 rounded shadow-sm text-blue-700">${(-page.angle).toFixed(1)}°</span>
                     </div>
                     <input type="range" min="-15" max="15" step="0.1" value="${-page.angle}" 
-                           class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                           class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
                            oninput="updateAngleUI(${index}, this.value)"
                            onchange="applyManualRotation(${index}, this.value)">
-                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                    <div class="flex justify-between text-xs font-bold text-blue-400 mt-2">
                         <span>-15°</span><span>0°</span><span>+15°</span>
                     </div>
                 </div>
@@ -320,33 +316,30 @@
 
         function applyManualRotation(index, sliderValue) {
             const page = processedPages[index];
-            const newAngle = -parseFloat(sliderValue); // Inverse because rotation is applied opposite to skew
+            const newAngle = -parseFloat(sliderValue); 
             
             page.angle = newAngle;
             page.processedCanvas = rotateCanvas(page.originalCanvas, newAngle);
             
-            // Update preview image
             document.getElementById(`img-proc-${index}`).src = page.processedCanvas.toDataURL('image/jpeg', 0.4);
             
-            // Update badge
             const badge = document.getElementById(`badge-${index}`);
-            badge.innerText = "Manual Edit";
-            badge.classList.replace('bg-slate-100', 'bg-blue-100');
-            badge.classList.replace('text-slate-500', 'text-blue-600');
+            badge.innerText = "Human Adjusted 🐈‍⬛";
+            badge.classList.replace('bg-blue-100', 'bg-purple-100');
+            badge.classList.replace('text-blue-600', 'text-purple-600');
         }
 
         // --- Final PDF Reconstruction ---
         async function generateFinalPDF() {
             const btn = document.getElementById('download-btn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating PDF...`;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Packaging PDF...`;
             btn.disabled = true;
 
             try {
                 const pdfDoc = await PDFLib.PDFDocument.create();
 
                 for (const page of processedPages) {
-                    // Extract high-res image data
                     const imgDataUrl = page.processedCanvas.toDataURL('image/jpeg', 0.95);
                     const jpgImage = await pdfDoc.embedJpg(imgDataUrl);
                     
@@ -364,18 +357,17 @@
 
                 const pdfBytes = await pdfDoc.save();
                 
-                // Trigger Download
                 const blob = new Blob([pdfBytes], { type: "application/pdf" });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = originalFileName.replace('.pdf', '_deskewed.pdf');
+                link.download = originalFileName.replace('.pdf', '_pawfect.pdf');
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
             } catch (error) {
                 console.error(error);
-                alert("An error occurred while generating the PDF.");
+                alert("The cats dropped the PDF! Check console for errors.");
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
