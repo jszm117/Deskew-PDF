@@ -9,9 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     
-    <!-- Changed to local file -->
-    <script src="opencv.js" onload="onOpenCVLoaded()" type="text/javascript"></script>
-
     <style>
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #eff6ff; }
@@ -19,6 +16,37 @@
         ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
         input[type=range] { accent-color: #2563eb; }
     </style>
+
+    <!-- 1. Define the WASM Module BEFORE loading OpenCV -->
+    <script>
+        var Module = {
+            onRuntimeInitialized: function() {
+                // This automatically fires the exact millisecond OpenCV is fully compiled and ready
+                if (typeof initApp === 'function') {
+                    initApp();
+                }
+            },
+            printErr: function(text) {
+                console.error("OpenCV WASM Error: ", text);
+                setTimeout(() => {
+                    document.getElementById('status-msg').innerHTML = `<span class="text-red-600">Cat-astrophe! OpenCV failed to initialize.</span>`;
+                }, 1000);
+            }
+        };
+
+        function onScriptLoadError() {
+            document.getElementById('status-msg').innerHTML = `
+                <span class="text-red-600">Error: Could not find opencv.js!</span><br>
+                <span class="text-sm text-blue-600">Make sure the file is named exactly <b>opencv.js</b> (all lowercase) and is in the root of your GitHub repository.</span>
+            `;
+            document.getElementById('cv-status').innerHTML = 'File missing!';
+            document.getElementById('cv-status').classList.replace('text-blue-600', 'text-red-600');
+        }
+    </script>
+
+    <!-- 2. Load the local OpenCV file -->
+    <script src="opencv.js" onerror="onScriptLoadError()" async></script>
+
 </head>
 <body class="bg-blue-50 text-blue-900 font-sans min-h-screen flex flex-col">
 
@@ -45,7 +73,7 @@
         <div id="dropzone" class="w-full border-4 border-dashed border-blue-200 rounded-3xl bg-white p-12 flex flex-col items-center justify-center text-center transition-all opacity-50 pointer-events-none hover:border-blue-500 hover:bg-blue-100 cursor-pointer shadow-sm">
             <div class="text-6xl mb-4">📥🐈</div>
             <h3 id="status-msg" class="text-xl font-bold text-blue-800">Please wait for the cats to wake up...</h3>
-            <p class="text-blue-500 mt-2 font-medium">Drop a multi-page scanned PDF here to let them fix it</p>
+            <p class="text-blue-500 mt-2 font-medium" id="sub-status-msg">Drop a multi-page scanned PDF here to let them fix it</p>
             <input type="file" id="file-input" class="hidden" accept="application/pdf" />
         </div>
 
@@ -79,32 +107,12 @@
         let originalFileName = "document.pdf";
         const HIGH_RES_SCALE = 3.0; 
 
-        // Ultra-resilient local WASM poller
-        function onOpenCVLoaded() {
-            let attempts = 0;
-            const checkCV = setInterval(() => {
-                attempts++;
-                if (typeof cv !== 'undefined') {
-                    if (cv.Mat) {
-                        clearInterval(checkCV);
-                        initApp();
-                    } else if (typeof cv.then === 'function') {
-                        clearInterval(checkCV);
-                        cv.then((resolvedCV) => {
-                            window.cv = resolvedCV;
-                            initApp();
-                        });
-                    } else if (cv.onRuntimeInitialized && attempts === 1) {
-                        clearInterval(checkCV);
-                        cv.onRuntimeInitialized = initApp;
-                    }
-                }
-                if (attempts > 50) { // Timeout after ~10 seconds
-                    clearInterval(checkCV);
-                    document.getElementById('status-msg').innerText = "Cat nap error! OpenCV failed to load. Check console.";
-                }
-            }, 200);
-        }
+        // Saftey fallback in case onRuntimeInitialized fired before the DOM was ready
+        window.addEventListener('load', () => {
+            if (typeof cv !== 'undefined' && cv.Mat && document.getElementById('dropzone').classList.contains('pointer-events-none')) {
+                initApp();
+            }
+        });
 
         function initApp() {
             const cvStatus = document.getElementById('cv-status');
@@ -115,6 +123,7 @@
             const dropzone = document.getElementById('dropzone');
             dropzone.classList.remove('opacity-50', 'pointer-events-none');
             document.getElementById('status-msg').innerText = "Drag & Drop a scanned PDF or Click to Browse";
+            document.getElementById('sub-status-msg').style.display = 'block';
 
             dropzone.addEventListener('click', () => document.getElementById('file-input').click());
             dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('bg-blue-100', 'border-blue-500'); });
