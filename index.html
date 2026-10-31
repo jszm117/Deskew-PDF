@@ -5,20 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meow-DF Deskewer 🐾</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    
-    <!-- PDF-Lib -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     
-    <!-- OpenCV.js -->
-    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCVLoaded()" type="text/javascript"></script>
+    <!-- Changed to local file -->
+    <script src="opencv.js" onload="onOpenCVLoaded()" type="text/javascript"></script>
 
     <style>
-        /* Custom blue scrollbar for the theme */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #eff6ff; }
         ::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 4px; }
@@ -48,7 +42,6 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-6xl mx-auto w-full p-8 flex flex-col gap-6">
         
-        <!-- Upload Zone -->
         <div id="dropzone" class="w-full border-4 border-dashed border-blue-200 rounded-3xl bg-white p-12 flex flex-col items-center justify-center text-center transition-all opacity-50 pointer-events-none hover:border-blue-500 hover:bg-blue-100 cursor-pointer shadow-sm">
             <div class="text-6xl mb-4">📥🐈</div>
             <h3 id="status-msg" class="text-xl font-bold text-blue-800">Please wait for the cats to wake up...</h3>
@@ -56,7 +49,6 @@
             <input type="file" id="file-input" class="hidden" accept="application/pdf" />
         </div>
 
-        <!-- Progress Tracker -->
         <div id="progress-container" class="hidden bg-white p-6 rounded-3xl shadow-md border-2 border-blue-100">
             <div class="flex justify-between items-end mb-2">
                 <span id="progress-text" class="text-sm font-bold text-blue-600">🐾 Paw-cessing page 1 of X...</span>
@@ -67,7 +59,6 @@
             </div>
         </div>
 
-        <!-- Action Bar -->
         <div id="action-bar" class="hidden flex justify-between items-center bg-white p-5 rounded-3xl shadow-md border-2 border-blue-100">
             <span class="text-blue-700 font-bold ml-2">😸 Look good? Adjust angles below if the cats missed a spot.</span>
             <button id="download-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2">
@@ -76,35 +67,43 @@
             </button>
         </div>
 
-        <!-- Results / Previews Grid -->
-        <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-            <!-- Dynamic Page Cards will be injected here -->
-        </div>
+        <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12"></div>
 
     </main>
 
     <script>
-        // --- Setup and Initialization ---
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
         let processedPages = [];
         let originalFileName = "document.pdf";
-        const HIGH_RES_SCALE = 3.0; // High resolution rendering
+        const HIGH_RES_SCALE = 3.0; 
 
-        // FIX: Robust OpenCV WASM initialization polling
+        // Ultra-resilient local WASM poller
         function onOpenCVLoaded() {
-            const checkCV = () => {
-                // cv.Mat is only available once the WebAssembly module fully compiles
-                if (typeof cv !== 'undefined' && cv.Mat) {
-                    initApp();
-                } else if (typeof cv !== 'undefined' && cv.onRuntimeInitialized) {
-                    cv.onRuntimeInitialized = initApp;
-                } else {
-                    setTimeout(checkCV, 150); // Poll every 150ms until ready
+            let attempts = 0;
+            const checkCV = setInterval(() => {
+                attempts++;
+                if (typeof cv !== 'undefined') {
+                    if (cv.Mat) {
+                        clearInterval(checkCV);
+                        initApp();
+                    } else if (typeof cv.then === 'function') {
+                        clearInterval(checkCV);
+                        cv.then((resolvedCV) => {
+                            window.cv = resolvedCV;
+                            initApp();
+                        });
+                    } else if (cv.onRuntimeInitialized && attempts === 1) {
+                        clearInterval(checkCV);
+                        cv.onRuntimeInitialized = initApp;
+                    }
                 }
-            };
-            checkCV();
+                if (attempts > 50) { // Timeout after ~10 seconds
+                    clearInterval(checkCV);
+                    document.getElementById('status-msg').innerText = "Cat nap error! OpenCV failed to load. Check console.";
+                }
+            }, 200);
         }
 
         function initApp() {
@@ -117,7 +116,6 @@
             dropzone.classList.remove('opacity-50', 'pointer-events-none');
             document.getElementById('status-msg').innerText = "Drag & Drop a scanned PDF or Click to Browse";
 
-            // Event Listeners
             dropzone.addEventListener('click', () => document.getElementById('file-input').click());
             dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('bg-blue-100', 'border-blue-500'); });
             dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('bg-blue-100', 'border-blue-500'); });
@@ -136,7 +134,6 @@
             document.getElementById('download-btn').addEventListener('click', generateFinalPDF);
         }
 
-        // --- Core PDF Processing Flow ---
         async function handleFile(file) {
             if (file.type !== "application/pdf") {
                 alert("Only PDFs allowed! 😾");
@@ -163,7 +160,6 @@
                     const page = await pdf.getPage(i);
                     const viewport = page.getViewport({ scale: HIGH_RES_SCALE });
                     
-                    // Render to high-res canvas
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     canvas.width = viewport.width;
@@ -171,7 +167,6 @@
                     
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-                    // Detect skew and process
                     const detectedAngle = detectSkewAngle(canvas);
                     const processedCanvas = rotateCanvas(canvas, -detectedAngle);
 
@@ -182,9 +177,7 @@
                         angle: detectedAngle
                     });
 
-                    renderPageUI(i - 1); // zero-indexed
-                    
-                    // Allow UI to breathe
+                    renderPageUI(i - 1); 
                     await new Promise(resolve => setTimeout(resolve, 50)); 
                 }
                 
@@ -204,7 +197,6 @@
             document.getElementById('progress-bar').style.width = `${percent}%`;
         }
 
-        // --- Computer Vision: Skew Detection ---
         function detectSkewAngle(canvas) {
             try {
                 let src = cv.imread(canvas);
@@ -247,7 +239,6 @@
             }
         }
 
-        // --- Image Transformation ---
         function rotateCanvas(sourceCanvas, angle) {
             let canvas = document.createElement('canvas');
             let ctx = canvas.getContext('2d');
@@ -264,7 +255,6 @@
             return canvas;
         }
 
-        // --- UI Rendering for Previews ---
         function renderPageUI(index) {
             const page = processedPages[index];
             const container = document.getElementById('results-container');
@@ -309,7 +299,6 @@
             container.appendChild(card);
         }
 
-        // --- Manual Adjustment Logic ---
         function updateAngleUI(index, sliderValue) {
             document.getElementById(`angle-val-${index}`).innerText = `${parseFloat(sliderValue).toFixed(1)}°`;
         }
@@ -329,7 +318,6 @@
             badge.classList.replace('text-blue-600', 'text-purple-600');
         }
 
-        // --- Final PDF Reconstruction ---
         async function generateFinalPDF() {
             const btn = document.getElementById('download-btn');
             const originalText = btn.innerHTML;
