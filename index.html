@@ -206,18 +206,36 @@
             document.getElementById('progress-bar').style.width = `${percent}%`;
         }
 
-        function detectSkewAngle(canvas) {
+                function detectSkewAngle(canvas) {
             try {
                 let src = cv.imread(canvas);
+                
+                // 1. Scale down to make processing faster and help text merge together
+                let resized = new cv.Mat();
+                let scale = 800 / src.cols;
+                cv.resize(src, resized, new cv.Size(800, Math.round(src.rows * scale)));
+
+                // 2. Convert to grayscale
                 let gray = new cv.Mat();
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-                
-                let edges = new cv.Mat();
-                cv.Canny(gray, edges, 50, 200, 3);
-                
+                cv.cvtColor(resized, gray, cv.COLOR_RGBA2GRAY, 0);
+
+                // 3. Invert colors (text becomes white, background becomes black)
+                cv.bitwise_not(gray, gray);
+
+                // 4. Thresholding to make the image strictly black and white
+                let thresh = new cv.Mat();
+                cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU);
+
+                // 5. Morphological Dilation: Smudge text horizontally to create solid lines
+                // We use a kernel that is wide (30) and short (5)
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(30, 5));
+                let dilated = new cv.Mat();
+                cv.dilate(thresh, dilated, kernel, new cv.Point(-1, -1), 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
+
+                // 6. Detect lines on the newly created solid text blocks
                 let lines = new cv.Mat();
-                cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 100, 50, 10);
-                
+                cv.HoughLinesP(dilated, lines, 1, Math.PI / 180, 100, 100, 20);
+
                 let angles = [];
                 for (let i = 0; i < lines.rows; ++i) {
                     let x1 = lines.data32S[i * 4];
@@ -227,26 +245,38 @@
                     
                     let angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
                     
+                    // Normalize the angle to check for horizontal skew
                     if (angle < -45) angle += 90;
                     if (angle > 45) angle -= 90;
                     
+                    // Only collect realistic minor skews (-15 to +15)
                     if (angle >= -15 && angle <= 15) {
                         angles.push(angle);
                     }
                 }
                 
-                src.delete(); gray.delete(); edges.delete(); lines.delete();
+                // Cleanup memory to prevent memory leaks in WebAssembly
+                src.delete(); resized.delete(); gray.delete(); thresh.delete(); 
+                kernel.delete(); dilated.delete(); lines.delete();
 
                 if (angles.length === 0) return 0;
                 
+                // 7. Find the Median angle for accuracy
                 angles.sort((a, b) => a - b);
-                return angles[Math.floor(angles.length / 2)];
+                let medianAngle = angles[Math.floor(angles.length / 2)];
+                
+                // Ignore microscopic sub-degree angles (less than 0.2°) to prevent blurring 
+                // essentially straight pages during canvas re-rendering
+                if (Math.abs(medianAngle) < 0.2) return 0;
+
+                return medianAngle;
                 
             } catch (err) {
                 console.error("OpenCV detection failed on page:", err);
-                return 0;
+                return 0; // Fallback to 0 if the page has no readable structure
             }
         }
+
 
         function rotateCanvas(sourceCanvas, angle) {
             let canvas = document.createElement('canvas');
